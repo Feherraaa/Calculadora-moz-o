@@ -35,6 +35,7 @@ def arredondar_5(valor):
         ceil(valor / 5) * 5
     )
 
+
 def carga_acidental(tipo):
 
     tabela = {
@@ -54,6 +55,7 @@ def carga_acidental(tipo):
 
     return tabela[tipo]
 
+
 def espessura_laje(lx, ly):
 
     menor = min(lx, ly)
@@ -67,11 +69,13 @@ def espessura_laje(lx, ly):
         8
     )
 
+
 def peso_proprio_laje(h_cm):
 
     return (
         h_cm / 100
     ) * 25
+
 
 def altura_viga(tipo, vao):
 
@@ -95,11 +99,16 @@ def altura_viga(tipo, vao):
 
     return arredondar_5(h)
 
-import math
 
 def secao_pilar(carga):
+    """
+    Trabalho acadêmico
 
-    sigma_adm = 0.50
+    Área mínima = 360 cm²
+    Menor face = 19 cm
+    """
+
+    sigma_adm = 1.0
 
     area_necessaria = carga / sigma_adm
 
@@ -108,20 +117,23 @@ def secao_pilar(carga):
         360
     )
 
-    lado = math.ceil(
-        math.sqrt(area_necessaria)
+    lado = ceil(
+        area_necessaria ** 0.5
     )
 
     lado = max(
         lado,
-        20
+        19
     )
+
+    lado = arredondar_5(lado)
 
     secao = f"{lado} x {lado}"
 
     return (
         secao,
-        area_necessaria
+        area_necessaria,
+        lado * lado
     )
 
 # ==========================================================
@@ -187,6 +199,10 @@ def gerar_pdf(
         Spacer(1, 20)
     )
 
+    # ======================================================
+    # LAJES
+    # ======================================================
+
     elementos.append(
         Paragraph(
             "LAJES",
@@ -202,7 +218,7 @@ def gerar_pdf(
                 (
                     f"{row['Laje']} | "
                     f"Área = {row['Área (m²)']} m² | "
-                    f"h = {row['Espessura (cm)']} cm"
+                    f"Espessura = {row['Espessura (cm)']} cm"
                 ),
                 styles["Normal"]
             )
@@ -211,6 +227,10 @@ def gerar_pdf(
     elementos.append(
         PageBreak()
     )
+
+    # ======================================================
+    # VIGAS
+    # ======================================================
 
     elementos.append(
         Paragraph(
@@ -228,6 +248,7 @@ def gerar_pdf(
                     f"{row['Viga']} | "
                     f"{row['Tipo']} | "
                     f"Vão = {row['Vão (m)']} m | "
+                    f"Altura = {row['Altura (cm)']} cm | "
                     f"Seção = {row['Seção']}"
                 ),
                 styles["Normal"]
@@ -237,6 +258,10 @@ def gerar_pdf(
     elementos.append(
         PageBreak()
     )
+
+    # ======================================================
+    # PILARES
+    # ======================================================
 
     elementos.append(
         Paragraph(
@@ -252,9 +277,11 @@ def gerar_pdf(
             Paragraph(
                 (
                     f"{row['Pilar']} | "
-                    f"Ainf = {row['Área Influência']} m² | "
+                    f"Ainf = {row['Área Influência (m²)']} m² | "
                     f"Carga = {row['Carga (kN)']} kN | "
-                    f"Seção = {row['Seção']}"
+                    f"Área Necessária = {row['Área Necessária (cm²)']} cm² | "
+                    f"Seção Adotada = {row['Seção Adotada']} | "
+                    f"Área Adotada = {row['Área Adotada (cm²)']} cm²"
                 ),
                 styles["Normal"]
             )
@@ -332,12 +359,12 @@ with col2:
 
     pavimentos = st.number_input(
         "Número de pavimentos",
-        1,
-        100,
-        1
+        min_value=1,
+        max_value=100,
+        value=1
     )
 
-    # ==========================================================
+# ==========================================================
 # QUANTIDADES
 # ==========================================================
 
@@ -523,7 +550,7 @@ for i in range(qtd_vigas):
             "secao": secao
         })
 
-# ==========================================================
+        # ==========================================================
 # PILARES
 # ==========================================================
 
@@ -539,11 +566,11 @@ nomes_lajes = list(
 
 carga_padrao = (
 
-    3.0
+    3.0      # revestimentos
 
     +
 
-    1.0
+    1.0      # peso próprio médio
 
     +
 
@@ -589,45 +616,46 @@ for i in range(qtd_pilares):
             pavimentos
         )
 
-        secao, area_secao_req = secao_pilar(
-    carga
-)
+        (
+            secao,
+            area_secao_req,
+            area_secao_adotada
+        ) = secao_pilar(
+            carga
+        )
 
-lado = int(
-    secao.split(" x ")[0]
-)
+        pilares.append({
 
-area_secao_adotada = lado * lado
+            "nome": f"P{i+1}",
 
-pilares.append({
+            "area": round(
+                area_influencia,
+                2
+            ),
 
-    "nome": f"P{i+1}",
+            "carga": round(
+                carga,
+                2
+            ),
 
-    "area": round(
-        area_influencia,
-        2
-    ),
+            "secao": secao,
 
-    "carga": round(
-        carga,
-        2
-    ),
+            "area_secao_req": round(
+                area_secao_req,
+                2
+            ),
 
-    "secao": secao,
+            "area_secao_adotada": round(
+                area_secao_adotada,
+                2
+            ),
 
-    "area_secao_req": round(
-        area_secao_req,
-        2
-    ),
+            "lajes": ", ".join(
+                lajes_pilar
+            )
+        })
 
-    "area_secao_adotada": area_secao_adotada,
-
-    "lajes": ", ".join(
-        lajes_pilar
-    )
-})
-
-        # ==========================================================
+# ==========================================================
 # DATAFRAMES
 # ==========================================================
 
@@ -656,7 +684,6 @@ df_lajes = pd.DataFrame(
         for nome, dados in lajes.items()
 
     ]
-
 )
 
 df_vigas = pd.DataFrame(
@@ -680,7 +707,6 @@ df_vigas = pd.DataFrame(
         for v in vigas
 
     ]
-
 )
 
 df_pilares = pd.DataFrame(
@@ -708,7 +734,6 @@ df_pilares = pd.DataFrame(
         for p in pilares
 
     ]
-
 )
 
 # ==========================================================
@@ -761,210 +786,238 @@ with tab3:
         use_container_width=True
     )
 
-# ==========================================================
-# RESUMO GERAL
-# ==========================================================
-
-st.header(
-    "📈 Resumo Geral"
-)
-
-area_total = 0
-
-for _, row in df_lajes.iterrows():
-
-    area_total += row["Área (m²)"]
-
-carga_total = 0
-
-for _, row in df_pilares.iterrows():
-
-    carga_total += row["Carga (kN)"]
-
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-
-    st.metric(
-        "Lajes",
-        len(df_lajes)
-    )
-
-with col2:
-
-    st.metric(
-        "Vigas",
-        len(df_vigas)
-    )
-
-with col3:
-
-    st.metric(
-        "Pilares",
-        len(df_pilares)
-    )
-
-with col4:
-
-    st.metric(
-        "Área Total",
-        f"{area_total:.2f} m²"
-    )
-
-st.metric(
-    "Carga Total da Estrutura",
-    f"{carga_total:.2f} kN"
-)
-
-# ==========================================================
-# VERIFICAÇÕES
+    # ==========================================================
+# PILARES
 # ==========================================================
 
 st.header(
-    "🔎 Verificações"
+    "🏢 Pilares"
 )
 
-if area_total == 0:
+pilares = []
 
-    st.warning(
-        "Nenhuma laje cadastrada."
+nomes_lajes = list(
+    lajes.keys()
+)
+
+carga_padrao = (
+
+    3.0      # revestimentos
+
+    +
+
+    1.0      # peso próprio médio
+
+    +
+
+    carga_acidental(
+        uso
     )
+)
 
-if len(df_pilares) == 0:
+for i in range(qtd_pilares):
 
-    st.warning(
-        "Nenhum pilar cadastrado."
-    )
+    with st.expander(
+        f"Pilar P{i+1}",
+        expanded=(i == 0)
+    ):
 
-for _, row in df_pilares.iterrows():
+        lajes_pilar = st.multiselect(
 
-    if row["Área Influência (m²)"] <= 0:
+            f"Lajes que descarregam em P{i+1}",
 
-        st.warning(
+            nomes_lajes,
 
-            f"{row['Pilar']} não possui "
-            f"lajes vinculadas."
+            key=f"pilar_lajes_{i}"
         )
 
+        area_influencia = 0
+
+        for laje in lajes_pilar:
+
+            area_influencia += (
+                lajes[laje]["area"]
+            )
+
+        carga = (
+
+            area_influencia
+
+            *
+
+            carga_padrao
+
+            *
+
+            pavimentos
+        )
+
+        (
+            secao,
+            area_secao_req,
+            area_secao_adotada
+        ) = secao_pilar(
+            carga
+        )
+
+        pilares.append({
+
+            "nome": f"P{i+1}",
+
+            "area": round(
+                area_influencia,
+                2
+            ),
+
+            "carga": round(
+                carga,
+                2
+            ),
+
+            "secao": secao,
+
+            "area_secao_req": round(
+                area_secao_req,
+                2
+            ),
+
+            "area_secao_adotada": round(
+                area_secao_adotada,
+                2
+            ),
+
+            "lajes": ", ".join(
+                lajes_pilar
+            )
+        })
+
 # ==========================================================
-# ESTATÍSTICAS
+# DATAFRAMES
+# ==========================================================
+
+df_lajes = pd.DataFrame(
+
+    [
+
+        {
+
+            "Laje": nome,
+
+            "Tipo": dados["tipo"],
+
+            "Lx (m)": dados["lx"],
+
+            "Ly (m)": dados["ly"],
+
+            "Área (m²)": dados["area"],
+
+            "Espessura (cm)": dados["espessura"],
+
+            "Peso Próprio (kN/m²)": dados["peso"]
+
+        }
+
+        for nome, dados in lajes.items()
+
+    ]
+)
+
+df_vigas = pd.DataFrame(
+
+    [
+
+        {
+
+            "Viga": v["nome"],
+
+            "Tipo": v["tipo"],
+
+            "Vão (m)": v["vao"],
+
+            "Altura (cm)": v["altura"],
+
+            "Seção": v["secao"]
+
+        }
+
+        for v in vigas
+
+    ]
+)
+
+df_pilares = pd.DataFrame(
+
+    [
+
+        {
+
+            "Pilar": p["nome"],
+
+            "Área Influência (m²)": p["area"],
+
+            "Carga (kN)": p["carga"],
+
+            "Área Necessária (cm²)": p["area_secao_req"],
+
+            "Seção Adotada": p["secao"],
+
+            "Área Adotada (cm²)": p["area_secao_adotada"],
+
+            "Lajes": p["lajes"]
+
+        }
+
+        for p in pilares
+
+    ]
+)
+
+# ==========================================================
+# RESULTADOS
 # ==========================================================
 
 st.header(
-    "📋 Estatísticas"
+    "📊 Resultados"
 )
 
-if len(df_lajes) > 0:
+tab1, tab2, tab3 = st.tabs(
 
-    st.write(
+    [
+        "Lajes",
+        "Vigas",
+        "Pilares"
+    ]
+)
 
-        f"Área média das lajes: "
-        f"{df_lajes['Área (m²)'].mean():.2f} m²"
+with tab1:
 
+    st.subheader(
+        "Resumo das Lajes"
     )
 
-if len(df_vigas) > 0:
-
-    st.write(
-
-        f"Vão médio das vigas: "
-        f"{df_vigas['Vão (m)'].mean():.2f} m"
-
+    st.dataframe(
+        df_lajes,
+        use_container_width=True
     )
 
-if len(df_pilares) > 0:
+with tab2:
 
-    st.write(
-
-        f"Carga média dos pilares: "
-        f"{df_pilares['Carga (kN)'].mean():.2f} kN"
-
+    st.subheader(
+        "Resumo das Vigas"
     )
 
-    # ==========================================================
-# EXPORTAÇÃO PDF
-# ==========================================================
+    st.dataframe(
+        df_vigas,
+        use_container_width=True
+    )
 
-st.header(
-    "📄 Exportação"
-)
+with tab3:
 
-pdf = gerar_pdf(
+    st.subheader(
+        "Resumo dos Pilares"
+    )
 
-    aluno=aluno,
-
-    disciplina=disciplina,
-
-    professor=professor,
-
-    df_lajes=df_lajes,
-
-    df_vigas=df_vigas,
-
-    df_pilares=df_pilares
-)
-
-st.download_button(
-
-    label="📥 Baixar Relatório PDF",
-
-    data=pdf,
-
-    file_name="relatorio_calculo_sofia.pdf",
-
-    mime="application/pdf"
-)
-
-# ==========================================================
-# RESUMO FINAL
-# ==========================================================
-
-st.header(
-    "🎓 Resumo Final"
-)
-
-st.success(
-
-    "Pré-dimensionamento concluído."
-)
-
-st.write(
-    f"Aluno: {aluno}"
-)
-
-st.write(
-    f"Disciplina: {disciplina}"
-)
-
-st.write(
-    f"Professor: {professor}"
-)
-
-st.write(
-    f"Pavimentos: {pavimentos}"
-)
-
-st.write(
-    f"Uso: {uso}"
-)
-
-st.write(
-    f"Área total das lajes: "
-    f"{area_total:.2f} m²"
-)
-
-st.write(
-    f"Carga total estimada: "
-    f"{carga_total:.2f} kN"
-)
-
-# ==========================================================
-# RODAPÉ
-# ==========================================================
-
-st.divider()
-
-st.caption(
-    "Cálculo Sofia • Ferramenta acadêmica "
-    "para pré-dimensionamento estrutural."
-)
+    st.dataframe(
+        df_pilares,
+        use_container_width=True
+    )
