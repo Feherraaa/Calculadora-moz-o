@@ -95,37 +95,34 @@ def altura_viga(tipo, vao):
 
     return arredondar_5(h)
 
+import math
+
 def secao_pilar(carga):
 
-    if carga <= 200:
+    sigma_adm = 0.50
 
-        return "20 x 20"
+    area_necessaria = carga / sigma_adm
 
-    elif carga <= 300:
+    area_necessaria = max(
+        area_necessaria,
+        360
+    )
 
-        return "20 x 30"
+    lado = math.ceil(
+        math.sqrt(area_necessaria)
+    )
 
-    elif carga <= 450:
+    lado = max(
+        lado,
+        20
+    )
 
-        return "25 x 25"
+    secao = f"{lado} x {lado}"
 
-    elif carga <= 600:
-
-        return "25 x 30"
-
-    elif carga <= 800:
-
-        return "30 x 30"
-
-    elif carga <= 1200:
-
-        return "30 x 40"
-
-    elif carga <= 1600:
-
-        return "35 x 40"
-
-    return "40 x 40"
+    return (
+        secao,
+        area_necessaria
+    )
 
 # ==========================================================
 # PDF
@@ -592,30 +589,43 @@ for i in range(qtd_pilares):
             pavimentos
         )
 
-        secao = secao_pilar(
-            carga
-        )
+        secao, area_secao_req = secao_pilar(
+    carga
+)
 
-        pilares.append({
+lado = int(
+    secao.split(" x ")[0]
+)
 
-            "nome": f"P{i+1}",
+area_secao_adotada = lado * lado
 
-            "area": round(
-                area_influencia,
-                2
-            ),
+pilares.append({
 
-            "carga": round(
-                carga,
-                2
-            ),
+    "nome": f"P{i+1}",
 
-            "secao": secao,
+    "area": round(
+        area_influencia,
+        2
+    ),
 
-            "lajes": ", ".join(
-                lajes_pilar
-            )
-        })
+    "carga": round(
+        carga,
+        2
+    ),
+
+    "secao": secao,
+
+    "area_secao_req": round(
+        area_secao_req,
+        2
+    ),
+
+    "area_secao_adotada": area_secao_adotada,
+
+    "lajes": ", ".join(
+        lajes_pilar
+    )
+})
 
         # ==========================================================
 # DATAFRAMES
@@ -681,11 +691,15 @@ df_pilares = pd.DataFrame(
 
             "Pilar": p["nome"],
 
-            "Área Influência": p["area"],
+            "Área Influência (m²)": p["area"],
 
             "Carga (kN)": p["carga"],
 
-            "Seção": p["secao"],
+            "Área Necessária (cm²)": p["area_secao_req"],
+
+            "Seção Adotada": p["secao"],
+
+            "Área Adotada (cm²)": p["area_secao_adotada"],
 
             "Lajes": p["lajes"]
 
@@ -824,7 +838,7 @@ if len(df_pilares) == 0:
 
 for _, row in df_pilares.iterrows():
 
-    if row["Área Influência"] <= 0:
+    if row["Área Influência (m²)"] <= 0:
 
         st.warning(
 
