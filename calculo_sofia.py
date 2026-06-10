@@ -777,16 +777,7 @@ with tab2:
 
 with tab3:
 
-    st.subheader(
-        "Resumo dos Pilares"
-    )
-
-    st.dataframe(
-        df_pilares,
-        use_container_width=True
-    )
-
-    # ==========================================================
+ # ==========================================================
 # PILARES
 # ==========================================================
 
@@ -802,11 +793,11 @@ nomes_lajes = list(
 
 carga_padrao = (
 
-    3.0      # revestimentos
+    3.0
 
     +
 
-    1.0      # peso próprio médio
+    1.0
 
     +
 
@@ -828,16 +819,15 @@ for i in range(qtd_pilares):
 
             nomes_lajes,
 
-            key=f"pilar_lajes_{i}"
+            key=f"mult_lajes_pilar_{i}"
         )
 
-        area_influencia = 0
+        area_influencia = sum(
 
-        for laje in lajes_pilar:
+            lajes[laje]["area"]
 
-            area_influencia += (
-                lajes[laje]["area"]
-            )
+            for laje in lajes_pilar
+        )
 
         carga = (
 
@@ -895,82 +885,73 @@ for i in range(qtd_pilares):
 # DATAFRAMES
 # ==========================================================
 
-df_lajes = pd.DataFrame(
+df_lajes = pd.DataFrame([
 
-    [
+    {
 
-        {
+        "Laje": nome,
 
-            "Laje": nome,
+        "Tipo": dados["tipo"],
 
-            "Tipo": dados["tipo"],
+        "Lx (m)": dados["lx"],
 
-            "Lx (m)": dados["lx"],
+        "Ly (m)": dados["ly"],
 
-            "Ly (m)": dados["ly"],
+        "Área (m²)": dados["area"],
 
-            "Área (m²)": dados["area"],
+        "Espessura (cm)": dados["espessura"],
 
-            "Espessura (cm)": dados["espessura"],
+        "Peso Próprio (kN/m²)": dados["peso"]
 
-            "Peso Próprio (kN/m²)": dados["peso"]
+    }
 
-        }
+    for nome, dados in lajes.items()
 
-        for nome, dados in lajes.items()
+])
 
-    ]
-)
+df_vigas = pd.DataFrame([
 
-df_vigas = pd.DataFrame(
+    {
 
-    [
+        "Viga": v["nome"],
 
-        {
+        "Tipo": v["tipo"],
 
-            "Viga": v["nome"],
+        "Vão (m)": v["vao"],
 
-            "Tipo": v["tipo"],
+        "Altura (cm)": v["altura"],
 
-            "Vão (m)": v["vao"],
+        "Seção": v["secao"]
 
-            "Altura (cm)": v["altura"],
+    }
 
-            "Seção": v["secao"]
+    for v in vigas
 
-        }
+])
 
-        for v in vigas
+df_pilares = pd.DataFrame([
 
-    ]
-)
+    {
 
-df_pilares = pd.DataFrame(
+        "Pilar": p["nome"],
 
-    [
+        "Área Influência (m²)": p["area"],
 
-        {
+        "Carga (kN)": p["carga"],
 
-            "Pilar": p["nome"],
+        "Área Necessária (cm²)": p["area_secao_req"],
 
-            "Área Influência (m²)": p["area"],
+        "Seção Adotada": p["secao"],
 
-            "Carga (kN)": p["carga"],
+        "Área Adotada (cm²)": p["area_secao_adotada"],
 
-            "Área Necessária (cm²)": p["area_secao_req"],
+        "Lajes": p["lajes"]
 
-            "Seção Adotada": p["secao"],
+    }
 
-            "Área Adotada (cm²)": p["area_secao_adotada"],
+    for p in pilares
 
-            "Lajes": p["lajes"]
-
-        }
-
-        for p in pilares
-
-    ]
-)
+])
 
 # ==========================================================
 # RESULTADOS
